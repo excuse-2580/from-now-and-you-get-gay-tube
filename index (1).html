@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>紫云盘</title>
+<style>
+/* ========== 基础与配色 ========== */
+:root{
+  --bg:#160e22;
+  --card:#221833;
+  --card-2:#241b3a;
+  --border:#3a2b5c;
+  --border-2:#4d3a7a;
+  --yellow:#f5c842;
+  --text:#ece2f7;
+  --sub:#9c88c4;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  padding:20px 16px 40px;
+  position:relative;
+  overflow-x:hidden;
+}
+/* 紫黄径向光晕 */
+body::before{
+  content:"";
+  position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(900px 500px at 15% -10%, rgba(120,70,200,.35), transparent 60%),
+    radial-gradient(800px 460px at 90% 10%, rgba(245,200,66,.16), transparent 55%),
+    radial-gradient(700px 500px at 50% 110%, rgba(90,50,160,.3), transparent 60%);
+}
+button{touch-action:manipulation;font-family:inherit;cursor:pointer;}
+input{font-family:inherit;}
+
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+
+/* ========== 顶部卡片 ========== */
+.hero{
+  background:linear-gradient(160deg,var(--card-2),var(--card));
+  border:1px solid var(--border);
+  border-radius:18px;padding:22px;
+  display:flex;flex-direction:column;gap:16px;
+}
+.hero-top{display:flex;align-items:center;gap:16px;}
+.logo{
+  width:52px;height:52px;border-radius:14px;flex:0 0 52px;
+  background:var(--yellow);color:#241b3a;
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;font-weight:800;
+  box-shadow:0 6px 18px rgba(245,200,66,.25);
+}
+.hero-title{font-size:24px;font-weight:800;letter-spacing:1px;}
+.hero-sub{font-size:13px;color:var(--sub);margin-top:4px;}
+
+.stats{display:flex;gap:20px;flex-wrap:wrap;font-size:13px;color:var(--sub);}
+.stats b{color:var(--text);font-size:16px;}
+.progress-track{
+  height:10px;border-radius:99px;background:#150c24;border:1px solid var(--border);overflow:hidden;
+}
+.progress-bar{
+  height:100%;width:0%;border-radius:99px;
+  background:linear-gradient(90deg,#7a4fd0,var(--yellow));
+  transition:width .3s ease;
+}
+
+/* ========== 工具栏 ========== */
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.btn{
+  border-radius:12px;padding:11px 16px;font-size:14px;font-weight:700;
+  border:1px solid transparent;transition:opacity .15s,transform .1s;
+}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--yellow);color:#241b3a;}
+.btn-primary:hover{opacity:.9;}
+.btn-ghost{background:transparent;color:var(--sub);border-color:var(--border-2);}
+.btn-ghost:hover{color:var(--text);border-color:var(--border-2);}
+.search{
+  flex:1;min-width:140px;background:var(--card);
+  border:1px solid var(--border);border-radius:12px;
+  padding:11px 14px;color:var(--text);font-size:14px;outline:none;
+}
+.search::placeholder{color:var(--sub);}
+.search:focus{border-color:var(--border-2);}
+
+/* ========== 拖拽区 ========== */
+.drop{
+  border:2px dashed var(--border-2);border-radius:18px;
+  padding:34px 20px;text-align:center;color:var(--sub);
+  transition:border-color .15s,background .15s;font-size:14px;
+}
+.drop.dragover{border-color:var(--yellow);background:rgba(245,200,66,.06);color:var(--yellow);}
+.drop small{display:block;margin-top:6px;font-size:12px;}
+
+/* ========== 文件列表 ========== */
+.list{display:flex;flex-direction:column;gap:10px;}
+.file-row{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:12px 14px;display:flex;align-items:center;gap:12px;
+}
+.file-icon{
+  width:46px;height:46px;border-radius:12px;flex:0 0 46px;
+  background:var(--card-2);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;color:var(--yellow);letter-spacing:.5px;
+}
+.file-meta{flex:1;min-width:0;}
+.file-name{font-size:14px;font-weight:600;word-break:break-all;}
+.file-sub{font-size:12px;color:var(--sub);margin-top:4px;}
+.slug-tag{
+  display:inline-block;margin-left:6px;font-size:11px;color:#241b3a;
+  background:var(--yellow);border-radius:6px;padding:1px 7px;font-weight:700;
+}
+.file-actions{display:flex;gap:8px;flex:0 0 auto;}
+.mini{
+  padding:8px 11px;font-size:12px;border-radius:10px;font-weight:700;
+}
+.mini-yellow{background:var(--yellow);color:#241b3a;border:1px solid transparent;}
+.mini-outline-y{background:transparent;color:var(--yellow);border-color:var(--yellow);}
+.mini-outline-p{background:transparent;color:var(--sub);border-color:var(--border-2);}
+
+/* ========== 空状态 / 说明 ========== */
+.empty{
+  text-align:center;padding:40px 20px;color:var(--sub);font-size:14px;
+  border:1px dashed var(--border-2);border-radius:18px;
+}
+.notice{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:14px 16px;font-size:12px;color:var(--sub);line-height:1.7;
+}
+
+/* ========== 页脚 ========== */
+footer{text-align:center;margin-top:24px;color:var(--sub);font-size:13px;}
+.capsule{
+  display:inline-block;margin-top:10px;background:var(--card-2);
+  border:1px solid var(--border);border-radius:99px;padding:10px 18px;
+  color:var(--yellow);font-size:12px;line-height:1.8;
+}
+
+/* ========== 弹窗 ========== */
+.modal-mask{
+  position:fixed;inset:0;background:rgba(10,6,18,.75);z-index:50;
+  display:none;align-items:center;justify-content:center;padding:16px;
+}
+.modal-mask.open{display:flex;}
+.modal{
+  background:var(--card-2);border:1px solid var(--border-2);border-radius:18px;
+  max-width:480px;width:100%;max-height:90vh;overflow-y:auto;
+  padding:22px;display:flex;flex-direction:column;gap:14px;
+}
+.modal h3{font-size:17px;}
+.modal .modal-sub{font-size:12px;color:var(--sub);line-height:1.6;}
+.field{display:flex;gap:8px;align-items:center;}
+.field input{
+  flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:10px 12px;color:var(--text);font-size:14px;outline:none;
+}
+.link-row{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:10px 12px;display:flex;gap:8px;align-items:center;
+}
+.link-row .link-text{flex:1;font-size:11px;color:var(--sub);word-break:break-all;line-height:1.5;}
+.link-row.disabled{opacity:.5;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;}
+.copy-ok{color:var(--yellow);font-size:12px;font-weight:700;min-width:56px;text-align:right;}
+
+/* ========== 小屏适配 ========== */
+@media (max-width:480px){
+  body{padding:14px 10px 32px;}
+  .hero{padding:16px;}
+  .hero-title{font-size:20px;}
+  .logo{width:44px;height:44px;flex-basis:44px;font-size:22px;}
+  .file-row{padding:10px;gap:10px;}
+  .file-icon{width:38px;height:38px;flex-basis:38px;font-size:10px;}
+  .file-name{font-size:13px;}
+  .file-actions{flex-direction:column;gap:6px;}
+  .mini{padding:7px 10px;}
+  .btn{padding:10px 13px;font-size:13px;}
+  .stats{gap:12px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 顶部卡片 -->
+  <section class="hero">
+    <div class="hero-top">
+      <div class="logo">云</div>
+      <div>
+        <div class="hero-title">紫云盘</div>
+        <div class="hero-sub">单文件本地网盘 · 文件只存在你的浏览器里</div>
+      </div>
+    </div>
+    <div class="stats">
+      <span>已用空间 <b id="statUsed">0 B</b></span>
+      <span>文件数 <b id="statCount">0</b></span>
+      <span>配额 <b id="statQuota">-</b></span>
+    </div>
+    <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+  </section>
+
+  <!-- 工具栏 -->
+  <section class="toolbar">
+    <button class="btn btn-primary" id="btnUpload">+ 上传文件</button>
+    <input class="search" id="search" type="text" placeholder="搜索文件名…">
+    <button class="btn btn-ghost" id="btnClear">清空</button>
+    <input type="file" id="fileInput" multiple hidden>
+  </section>
+
+  <!-- 拖拽区 -->
+  <section class="drop" id="drop">
+    把文件拖到这里上传
+    <small>支持多选 · 本地保存 · 不上传服务器</small>
+  </section>
+
+  <!-- 文件列表 -->
+  <section class="list" id="list"></section>
+
+  <!-- 说明块 -->
+  <section class="notice">
+    所有文件通过 IndexedDB 存放在本机浏览器，刷新页面不会丢失；清理浏览器数据后才会被删除。分享链接分为本浏览器专用后缀链接与内嵌数据链接（仅 800KB 以内可生成）。
+  </section>
+
+  <!-- 页脚 -->
+  <footer>
+    紫云盘 · 单文件静态页 · 可直接部署到 GitHub Pages
+    <div class="capsule">
+      本网站由大肥鱼编写<br>
+      由威斯部署
+    </div>
+  </footer>
+</div>
+
+<!-- 分享弹窗 -->
+<div class="modal-mask" id="shareMask">
+  <div class="modal">
+    <h3>分享文件</h3>
+    <div class="modal-sub" id="shareFileName"></div>
+    <div class="field">
+      <input type="text" id="slugInput" placeholder="分享后缀（字母、数字、-、_）">
+      <button class="btn btn-ghost" id="btnRandom">随机</button>
+    </div>
+    <div class="link-row">
+      <div class="link-text" id="slugLink"></div>
+      <button class="mini mini-outline-y" id="copySlug">复制</button>
+      <span class="copy-ok" id="slugCopied"></span>
+    </div>
+    <div class="link-row" id="dataRow">
+      <div class="link-text" id="dataLink"></div>
+      <button class="mini mini-outline-y" id="copyData">复制</button>
+      <span class="copy-ok" id="dataCopied"></span>
+    </div>
+    <div class="modal-sub" id="dataNote"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="shareCancel">取消</button>
+      <button class="btn btn-primary" id="shareSave">保存分享</button>
+    </div>
+  </div>
+</div>
+
+<!-- 接收分享弹窗 -->
+<div class="modal-mask" id="recvMask">
+  <div class="modal">
+    <h3>你收到一个分享</h3>
+    <div class="modal-sub" id="recvInfo"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="recvClose">关闭</button>
+      <button class="btn btn-primary" id="recvSave">保存到我的网盘</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+ * IndexedDB 层：库 purple_drive，store files，keyPath 自增 id
+ * ============================================================ */
+const DB_NAME = 'purple_drive';
+const STORE = 'files';
+let db;
+
+function openDB(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains(STORE)){
+        d.createObjectStore(STORE, { keyPath:'id', autoIncrement:true });
+      }
+    };
+    req.onsuccess = e => { db = e.target.result; resolve(db); };
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
+function reqAsPromise(req){
+  return new Promise((resolve, reject) => {
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbPut(record){
+  const t = db.transaction(STORE, 'readwrite');
+  return reqAsPromise(t.objectStore(STORE).put(record));
+}
+async function dbGetAll(){
+  const t = db.transaction(STORE, 'readonly');
+  return reqAsPromise(t.objectStore(STORE).getAll());
+}
+async function dbDelete(id){
+  const t = db.transaction(STORE, 'readwrite');
+  return reqAsPromise(t.objectStore(STORE).delete(id));
+}
+async function dbClear(){
+  const t = db.transaction(STORE, 'readwrite');
+  return reqAsPromise(t.objectStore(STORE).clear());
+}
+
+/* ============================================================
+ * 工具函数：格式化、分类、编码、后缀校验、随机串
+ * ============================================================ */
+const $ = id => document.getElementById(id);
+
+function formatSize(bytes){
+  if (bytes == null) return '-';
+  if (bytes < 1024) return bytes + ' B';
+  const units = ['KB','MB','GB'];
+  let i = -1, n = bytes;
+  do { n /= 1024; i++; } while (n >= 1024 && i < units.length - 1);
+  return n.toFixed(1) + ' ' + units[i];
+}
+
+function formatTime(ts){
+  const d = new Date(ts);
+  const p = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function fileCategory(name, type){
+  const ext = name.split('.').pop().toLowerCase();
+  if (type.startsWith('image/')) return 'IMG';
+  if (type.startsWith('video/')) return 'VID';
+  if (type.startsWith('audio/')) return 'AUD';
+  if (['zip','rar','7z','tar','gz'].includes(ext)) return 'ZIP';
+  if (['txt','pdf','doc','docx','xls','xlsx','ppt','pptx','md','csv'].includes(ext)) return 'DOC';
+  return 'FILE';
+}
+
+const SLUG_RE = /^[a-z0-9_-]{2,24}$/;
+function validSlug(s){ return SLUG_RE.test(s); }
+
+function randomSlug(){
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let out = '';
+  for (let i = 0; i < 6; i++) out += chars[Math.floor(Math.random()*chars.length)];
+  return out;
+}
+
+function b64encode(str){ return btoa(unescape(encodeURIComponent(str))); }
+function b64decode(str){ return decodeURIComponent(escape(atob(str))); }
+
+function blobToBase64(blob){
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result.split(',')[1]);
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
+}
+function base64ToBlob(b64, type){
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: type || 'application/octet-stream' });
+}
+
+function baseUrl(){ return location.href.split('#')[0]; }
+
+let files = [];      // 内存中的文件列表
+let keyword = '';   // 搜索关键字
+
+/* ============================================================
+ * 渲染：统计、进度条、文件列表、空状态
+ * ============================================================ */
+async function refreshStats(){
+  const used = files.reduce((s,f) => s + (f.size || 0), 0);
+  let quota = 0;
+  try {
+    const est = await navigator.storage.estimate();
+    quota = est.quota || 0;
+  } catch(e){ quota = 0; }
+  $('statUsed').textContent = formatSize(used);
+  $('statCount').textContent = files.length;
+  $('statQuota').textContent = quota ? formatSize(quota) : '浏览器未知';
+  const pct = quota ? Math.min(100, used / quota * 100) : 0;
+  $('progressBar').style.width = pct.toFixed(1) + '%';
+}
+
+function renderList(){
+  const list = $('list');
+  list.innerHTML = '';
+  const shown = files
+    .filter(f => f.name.toLowerCase().includes(keyword.toLowerCase()))
+    .sort((a,b) => b.time - a.time);
+
+  if (shown.length === 0){
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = files.length === 0 ? '还没有文件，上传一个试试吧' : '没有匹配的文件';
+    list.appendChild(empty);
+    return;
+  }
+
+  shown.forEach(f => {
+    const row = document.createElement('div');
+    row.className = 'file-row';
+
+    const icon = document.createElement('div');
+    icon.className = 'file-icon';
+    icon.textContent = fileCategory(f.name, f.type);
+
+    const meta = document.createElement('div');
+    meta.className = 'file-meta';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'file-name';
+    nameEl.textContent = f.name;
+    if (f.slug){
+      const tag = document.createElement('span');
+      tag.className = 'slug-tag';
+      tag.textContent = '#' + f.slug;
+      nameEl.appendChild(tag);
+    }
+    const sub = document.createElement('div');
+    sub.className = 'file-sub';
+    sub.textContent = `${formatSize(f.size)} · ${formatTime(f.time)}`;
+    meta.appendChild(nameEl);
+    meta.appendChild(sub);
+
+    const actions = document.createElement('div');
+    actions.className = 'file-actions';
+
+    const dl = document.createElement('button');
+    dl.className = 'mini mini-yellow';
+    dl.textContent = '下载';
+    dl.onclick = () => downloadFile(f);
+
+    const sh = document.createElement('button');
+    sh.className = 'mini mini-outline-y';
+    sh.textContent = '分享';
+    sh.onclick = () => openShare(f);
+
+    const del = document.createElement('button');
+    del.className = 'mini mini-outline-p';
+    del.textContent = '删除';
+    del.onclick = () => removeFile(f);
+
+    actions.appendChild(dl);
+    actions.appendChild(sh);
+    actions.appendChild(del);
+    row.appendChild(icon);
+    row.appendChild(meta);
+    row.appendChild(actions);
+    list.appendChild(row);
+  });
+}
+
+async function refresh(){
+  await refreshStats();
+  renderList();
+}
+
+/* ============================================================
+ * 上传：按钮选择 / 拖拽多选，写入 IndexedDB
+ * ============================================================ */
+async function handleFiles(fileList){
+  const arr = Array.from(fileList || []);
+  for (const file of arr){
+    const record = {
+      name: file.name,
+      size: file.size,
+      type: file.type || 'application/octet-stream',
+      time: Date.now(),
+      blob: file,
+      slug: ''
+    };
+    try { await dbPut(record); }
+    catch(e){ alert('保存失败：' + e.message); }
+  }
+  files = await dbGetAll();
+  await refresh();
+}
+
+function downloadFile(f){
+  const url = URL.createObjectURL(f.blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = f.name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function removeFile(f){
+  if (!confirm(`确定删除「${f.name}」吗？`)) return;
+  try {
+    await dbDelete(f.id);
+    files = await dbGetAll();
+    await refresh();
+  } catch(e){ alert('删除失败：' + e.message); }
+}
+
+/* ============================================================
+ * 分享：后缀链接 / 数据链接，复制反馈，保存后缀到记录
+ * ============================================================ */
+let shareTarget = null;   // 当前正在分享的文件记录
+const DATA_LIMIT = 800 * 1024; // 800KB
+
+function openShare(f){
+  shareTarget = f;
+  $('shareFileName').textContent = `${f.name}（${formatSize(f.size)}）`;
+  $('slugInput').value = f.slug || '';
+  $('slugCopied').textContent = '';
+  $('dataCopied').textContent = '';
+  updateShareLinks();
+  $('shareMask').classList.add('open');
+}
+
+function closeShare(){
+  shareTarget = null;
+  $('shareMask').classList.remove('open');
+}
+
+function updateShareLinks(){
+  if (!shareTarget) return;
+  const slug = $('slugInput').value.trim();
+
+  // 后缀链接（仅本浏览器有效）
+  if (validSlug(slug)){
+    $('slugLink').textContent = `${baseUrl()}#s=${slug}`;
+  } else {
+    $('slugLink').textContent = '后缀需为 2-24 位小写字母、数字、- 或 _';
+  }
+
+  // 数据链接（800KB 以内才生成）
+  if (shareTarget.size <= DATA_LIMIT){
+    $('dataRow').classList.remove('disabled');
+    $('dataNote').textContent = '数据链接已内嵌文件内容，换设备也能打开（体积较大时不建议生成）。';
+    buildDataLink();
+  } else {
+    $('dataRow').classList.add('disabled');
+    $('dataLink').textContent = '带不动，建议接后端';
+    $('dataNote').textContent = '文件超过 800KB，无法生成内嵌数据链接，建议让对方使用后缀链接或接入后端存储。';
+  }
+}
+
+async function buildDataLink(){
+  try {
+    const b64 = await blobToBase64(shareTarget.blob);
+    const payload = b64encode(JSON.stringify({ n: shareTarget.name, t: shareTarget.type, d: b64 }));
+    $('dataLink').textContent = `${baseUrl()}#d=${payload}`;
+  } catch(e){
+    $('dataLink').textContent = '数据链接生成失败';
+  }
+}
+
+function slugTaken(slug, excludeId){
+  return files.some(f => f.slug === slug && f.id !== excludeId);
+}
+
+async function saveShare(){
+  if (!shareTarget) return;
+  const slug = $('slugInput').value.trim();
+  if (!validSlug(slug)){ alert('后缀格式不正确：2-24 位小写字母、数字、- 或 _'); return; }
+  if (slugTaken(slug, shareTarget.id)){ alert('这个后缀已经被其他文件占用了'); return; }
+
+  shareTarget.slug = slug;
+  try {
+    await dbPut(shareTarget);
+    files = await dbGetAll();
+    await refresh();
+    closeShare();
+  } catch(e){ alert('保存分享失败：' + e.message); }
+}
+
+async function copyText(text, okEl){
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch(e){
+    // 降级方案
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); ta.remove();
+  }
+  okEl.textContent = '已复制';
+  setTimeout(() => okEl.textContent = '', 1500);
+}
+
+/* ============================================================
+ * 接收分享：解析 #s= 与 #d=，弹窗提示并可保存到本地
+ * ============================================================ */
+let recvPayload = null; // { name, type, blob }
+
+function clearHash(){
+  history.replaceState(null, '', baseUrl());
+}
+
+function openRecv(name, size, payload){
+  recvPayload = payload;
+  $('recvInfo').textContent = `${name} · ${formatSize(size)}`;
+  $('recvMask').classList.add('open');
+}
+
+function closeRecv(){
+  recvPayload = null;
+  $('recvMask').classList.remove('open');
+  clearHash();
+}
+
+async function saveRecv(){
+  if (!recvPayload){ closeRecv(); return; }
+  const record = {
+    name: recvPayload.name,
+    size: recvPayload.blob.size,
+    type: recvPayload.type,
+    time: Date.now(),
+    blob: recvPayload.blob,
+    slug: ''
+  };
+  try {
+    await dbPut(record);
+    files = await dbGetAll();
+    await refresh();
+    closeRecv();
+  } catch(e){ alert('保存失败：' + e.message); }
+}
+
+async function handleHash(){
+  const hash = location.hash;
+  if (!hash) return;
+
+  // 后缀分享：仅本浏览器可解析
+  if (hash.startsWith('#s=')){
+    const slug = decodeURIComponent(hash.slice(3));
+    const found = files.find(f => f.slug === slug);
+    if (found){
+      openRecv(found.name, found.size, {
+        name: found.name, type: found.type, blob: found.blob
+      });
+    } else {
+      $('recvInfo').textContent = '本浏览器找不到这个分享：「#' + slug + '」。后缀链接只在分享者的浏览器里有效，换设备打不开，请让对方改用数据链接。';
+      $('recvSave').style.display = 'none';
+      $('recvMask').classList.add('open');
+    }
+    return;
+  }
+
+  // 数据分享：内嵌 base64，可跨设备
+  if (hash.startsWith('#d=')){
+    try {
+      const payload = JSON.parse(b64decode(hash.slice(3)));
+      const blob = base64ToBlob(payload.d, payload.t);
+      openRecv(payload.n, blob.size, { name: payload.n, type: payload.t, blob });
+    } catch(e){
+      $('recvInfo').textContent = '数据链接解析失败，内容可能已损坏。';
+      $('recvSave').style.display = 'none';
+      $('recvMask').classList.add('open');
+    }
+  }
+}
+
+/* ============================================================
+ * 事件绑定
+ * ============================================================ */
+function bindEvents(){
+  // 上传按钮与文件选择
+  $('btnUpload').onclick = () => $('fileInput').click();
+  $('fileInput').onchange = e => { handleFiles(e.target.files); e.target.value = ''; };
+
+  // 拖拽上传
+  const drop = $('drop');
+  ['dragenter','dragover'].forEach(ev =>
+    drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('dragover'); })
+  );
+  ['dragleave','drop'].forEach(ev =>
+    drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('dragover'); })
+  );
+  drop.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
+
+  // 搜索实时过滤
+  $('search').oninput = e => { keyword = e.target.value; renderList(); };
+
+  // 清空
+  $('btnClear').onclick = async () => {
+    if (files.length === 0) return;
+    if (!confirm('确定清空全部文件吗？此操作不可恢复。')) return;
+    try {
+      await dbClear();
+      files = await dbGetAll();
+      await refresh();
+    } catch(e){ alert('清空失败：' + e.message); }
+  };
+
+  // 分享弹窗
+  $('btnRandom').onclick = () => {
+    let s = randomSlug();
+    while (slugTaken(s, shareTarget ? shareTarget.id : null)) s = randomSlug();
+    $('slugInput').value = s;
+    updateShareLinks();
+  };
+  $('slugInput').oninput = updateShareLinks;
+  $('copySlug').onclick = () => copyText($('slugLink').textContent, $('slugCopied'));
+  $('copyData').onclick = () => copyText($('dataLink').textContent, $('dataCopied'));
+  $('shareCancel').onclick = closeShare;
+  $('shareSave').onclick = saveShare;
+
+  // 接收弹窗
+  $('recvClose').onclick = () => { $('recvSave').style.display = ''; closeRecv(); };
+  $('recvSave').onclick = saveRecv;
+
+  // 点击遮罩关闭弹窗
+  $('shareMask').addEventListener('click', e => { if (e.target === $('shareMask')) closeShare(); });
+  $('recvMask').addEventListener('click', e => { if (e.target === $('recvMask')){ $('recvSave').style.display = ''; closeRecv(); } });
+}
+
+/* ============================================================
+ * 启动
+ * ============================================================ */
+(async function init(){
+  await openDB();
+  files = await dbGetAll();
+  bindEvents();
+  await refresh();
+  await handleHash();
+})();
+</script>
+</body>
+</html>
